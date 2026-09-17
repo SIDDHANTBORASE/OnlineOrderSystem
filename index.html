@@ -3,94 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ghar Ka Swad | Online Food Ordering</title>
+    <title>Food Ordering App</title>
     <link rel="stylesheet" href="style.css">
+    <!-- Supabase Library -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
-    <header class="site-header">
-        <div class="container nav">
-            <a class="brand" href="#">
-                <span class="brand-mark">GK</span>
-                <span>
-                    <strong>Ghar Ka Swad</strong>
-                    <small>Indian food, made easy</small>
-                </span>
-            </a>
-            <a class="cart-link" href="#cart">Cart <span id="cart-count">0</span></a>
+    <div class="container">
+        <h1>Order Your Food</h1>
+        
+        <div id="menu-container">
+            <!-- Menu items will load here -->
         </div>
-    </header>
 
-    <main>
-        <section class="hero">
-            <div class="container hero-content">
-                <p class="eyebrow">Freshly prepared favourites</p>
-                <h1>Good food.<br><em>Good mood.</em></h1>
-                <p class="hero-copy">Order comforting Indian dishes for lunch, dinner, or whenever you are hungry.</p>
-                <a class="button button-light" href="#menu">Browse menu</a>
-            </div>
-        </section>
-
-        <section id="menu" class="section container">
-            <div class="section-heading">
-                <div>
-                    <p class="eyebrow">Today's menu</p>
-                    <h2>What are you craving?</h2>
-                </div>
-                <label class="search">
-                    <span>Search</span>
-                    <input id="search-input" type="search" placeholder="Biryani, dosa..." aria-label="Search menu">
-                </label>
-            </div>
-            <div id="category-filters" class="filters" aria-label="Food categories"></div>
-            <div id="menu-grid" class="menu-grid">
-                <p class="loading">Loading today's menu...</p>
-            </div>
-            <p id="menu-error" class="message error hidden"></p>
-        </section>
-
-        <section id="cart" class="order-section">
-            <div class="container order-layout">
-                <div>
-                    <p class="eyebrow">Your order</p>
-                    <h2>Ready when you are.</h2>
-                    <div id="cart-items" class="cart-items">
-                        <p class="empty-state">Your cart is empty. Add something delicious from the menu.</p>
-                    </div>
-                </div>
-
-                <aside class="checkout-card">
-                    <h3>Delivery details</h3>
-                    <form id="order-form">
-                        <label>
-                            Name
-                            <input id="customer-name" type="text" required placeholder="Your name">
-                        </label>
-                        <label>
-                            Phone
-                            <input id="customer-phone" type="tel" required placeholder="10-digit phone number">
-                        </label>
-                        <label>
-                            Address
-                            <textarea id="delivery-address" required rows="3" placeholder="Where should we deliver?"></textarea>
-                        </label>
-                        <div class="summary-row">
-                            <span>Total</span>
-                            <strong id="cart-total">₹0.00</strong>
-                        </div>
-                        <button class="button button-primary full-width" type="submit">Place order</button>
-                        <p id="order-message" class="message hidden"></p>
-                    </form>
-                </aside>
-            </div>
-        </section>
-    </main>
-
-    <footer class="site-footer">
-        <div class="container">
-            <strong>Ghar Ka Swad</strong>
-            <span>Simple online food ordering with HTML, PHP, and MySQL.</span>
+        <div class="checkout-section">
+            <h2>Your Order</h2>
+            <input type="text" id="customer-name" placeholder="Your Name">
+            <input type="text" id="customer-address" placeholder="Delivery Address">
+            <button onclick="placeOrder()">Place Order</button>
         </div>
-    </footer>
+    </div>
 
     <script src="script.js"></script>
 </body>
