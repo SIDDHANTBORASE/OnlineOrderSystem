@@ -1,214 +1,81 @@
-const state = {
-    menu: [],
-    cart: JSON.parse(localStorage.getItem("food-order-cart") || "{}"),
-    category: "All",
-};
+// --- 1. CONNECT TO SUPABASE ---
+const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
 
-const menuGrid = document.getElementById("menu-grid");
-const categoryFilters = document.getElementById("category-filters");
-const searchInput = document.getElementById("search-input");
-const cartItems = document.getElementById("cart-items");
-const cartTotal = document.getElementById("cart-total");
-const cartCount = document.getElementById("cart-count");
-const orderForm = document.getElementById("order-form");
-const orderMessage = document.getElementById("order-message");
-const menuError = document.getElementById("menu-error");
+const { createClient } = supabase;
+const _supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-document.addEventListener("DOMContentLoaded", loadMenu);
-searchInput.addEventListener("input", renderMenu);
-orderForm.addEventListener("submit", submitOrder);
+// --- 2. LOAD MENU ON PAGE LOAD ---
+document.addEventListener('DOMContentLoaded', () => {
+    loadMenu();
+});
 
 async function loadMenu() {
-    try {
-        const response = await fetch("api.php?action=menu");
-        const result = await response.json();
-        if (!response.ok || !result.success) {
-            throw new Error(result.error || "The menu could not be loaded.");
-        }
-        state.menu = result.items;
-        renderFilters();
-        renderMenu();
-        renderCart();
-    } catch (error) {
-        menuGrid.innerHTML = "";
-        menuError.textContent = `${error.message} Make sure Apache and MySQL are running.`;
-        menuError.classList.remove("hidden");
-    }
-}
+    const menuContainer = document.getElementById('menu-container');
+    menuContainer.innerHTML = '<p>Loading menu...</p>';
 
-function renderFilters() {
-    const categories = ["All", ...new Set(state.menu.map((item) => item.category))];
-    categoryFilters.innerHTML = categories.map((category) => `
-        <button class="filter ${category === state.category ? "active" : ""}"
-                type="button" data-category="${escapeHtml(category)}">
-            ${escapeHtml(category)}
-        </button>
-    `).join("");
+    const { data: food_items, error } = await _supabase.from('food_items').select('*');
 
-    categoryFilters.querySelectorAll(".filter").forEach((button) => {
-        button.addEventListener("click", () => {
-            state.category = button.dataset.category;
-            renderFilters();
-            renderMenu();
-        });
-    });
-}
-
-function renderMenu() {
-    const search = searchInput.value.trim().toLowerCase();
-    const visibleItems = state.menu.filter((item) => {
-        const matchesCategory = state.category === "All" || item.category === state.category;
-        const matchesSearch = `${item.name} ${item.description} ${item.category}`
-            .toLowerCase()
-            .includes(search);
-        return matchesCategory && matchesSearch;
-    });
-
-    if (visibleItems.length === 0) {
-        menuGrid.innerHTML = '<p class="empty-state">No dishes match your search.</p>';
+    if (error) {
+        console.error('Error loading menu:', error);
+        menuContainer.innerHTML = '<p>Failed to load menu.</p>';
         return;
     }
 
-    menuGrid.innerHTML = visibleItems.map((item, index) => `
-        <article class="food-card">
-            <div class="food-art" style="--card-color: ${artColor(index)}">${artLetter(item.name)}</div>
-            <div class="food-content">
-                <h3>${escapeHtml(item.name)}</h3>
-                <p class="food-description">${escapeHtml(item.description)}</p>
-                <div class="food-bottom">
-                    <span class="price">${formatMoney(item.price)}</span>
-                    <button class="add-button" type="button" data-add="${item.id}">Add to cart</button>
-                </div>
+    menuContainer.innerHTML = '';
+    food_items.forEach(item => {
+        menuContainer.innerHTML += `
+            <div class="food-item">
+                <h3>${item.name}</h3>
+                <p>${item.description || ''}</p>
+                <p><strong>$${item.price}</strong></p>
+                <button onclick="addToCart('${item.name}', ${item.price})">Add to Order</button>
             </div>
-        </article>
-    `).join("");
-
-    menuGrid.querySelectorAll("[data-add]").forEach((button) => {
-        button.addEventListener("click", () => addToCart(Number(button.dataset.add)));
+        `;
     });
 }
 
-function addToCart(id) {
-    state.cart[id] = (state.cart[id] || 0) + 1;
-    saveCart();
-    renderCart();
-    document.getElementById("cart").scrollIntoView({ behavior: "smooth", block: "start" });
+// Simple cart storage for demo
+let currentCart = [];
+
+function addToCart(name, price) {
+    currentCart.push({ name, price });
+    alert(name + ' added to your order!');
 }
 
-function changeQuantity(id, change) {
-    state.cart[id] = (state.cart[id] || 0) + change;
-    if (state.cart[id] <= 0) {
-        delete state.cart[id];
+// --- 3. PLACE ORDER ---
+async function placeOrder() {
+    const name = document.getElementById('customer-name').value;
+    const address = document.getElementById('customer-address').value;
+
+    if (!name || !address) {
+        alert('Please fill in your name and address.');
+        return;
     }
-    saveCart();
-    renderCart();
-}
 
-function renderCart() {
-    const cartEntries = Object.entries(state.cart)
-        .map(([id, quantity]) => ({
-            item: state.menu.find((menuItem) => menuItem.id === Number(id)),
-            quantity,
-        }))
-        .filter((entry) => entry.item);
+    if (currentCart.length === 0) {
+        alert('Your cart is empty!');
+        return;
+    }
 
-    if (cartEntries.length === 0) {
-        cartItems.innerHTML = '<p class="empty-state">Your cart is empty. Add something delicious from the menu.</p>';
+    const totalPrice = currentCart.reduce((sum, item) => sum + item.price, 0);
+
+    const { error } = await _supabase.from('orders').insert([
+        {
+            customer_name: name,
+            address: address,
+            items: currentCart,
+            total_price: totalPrice
+        }
+    ]);
+
+    if (error) {
+        console.error('Error placing order:', error);
+        alert('Error placing order. Try again.');
     } else {
-        cartItems.innerHTML = cartEntries.map(({ item, quantity }) => `
-            <div class="cart-row">
-                <div>
-                    <strong>${escapeHtml(item.name)}</strong>
-                    <small>${formatMoney(item.price)} each</small>
-                </div>
-                <div class="quantity">
-                    <button type="button" aria-label="Decrease ${escapeHtml(item.name)} quantity" data-change="${item.id}" data-amount="-1">−</button>
-                    <span>${quantity}</span>
-                    <button type="button" aria-label="Increase ${escapeHtml(item.name)} quantity" data-change="${item.id}" data-amount="1">+</button>
-                </div>
-                <strong>${formatMoney(Number(item.price) * quantity)}</strong>
-            </div>
-        `).join("");
-
-        cartItems.querySelectorAll("[data-change]").forEach((button) => {
-            button.addEventListener("click", () => {
-                changeQuantity(Number(button.dataset.change), Number(button.dataset.amount));
-            });
-        });
+        alert('Order placed successfully!');
+        currentCart = [];
+        document.getElementById('customer-name').value = '';
+        document.getElementById('customer-address').value = '';
     }
-
-    const totalQuantity = cartEntries.reduce((sum, entry) => sum + entry.quantity, 0);
-    const total = cartEntries.reduce((sum, entry) => sum + Number(entry.item.price) * entry.quantity, 0);
-    cartCount.textContent = totalQuantity;
-    cartTotal.textContent = formatMoney(total);
-}
-
-async function submitOrder(event) {
-    event.preventDefault();
-    const items = Object.entries(state.cart).map(([menu_item_id, quantity]) => ({
-        menu_item_id: Number(menu_item_id),
-        quantity,
-    }));
-
-    if (items.length === 0) {
-        showOrderMessage("Add at least one item before placing your order.", "error");
-        return;
-    }
-
-    const payload = {
-        customer_name: document.getElementById("customer-name").value.trim(),
-        customer_phone: document.getElementById("customer-phone").value.trim(),
-        delivery_address: document.getElementById("delivery-address").value.trim(),
-        items,
-    };
-
-    try {
-        const response = await fetch("api.php?action=order", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-        });
-        const result = await response.json();
-        if (!response.ok || !result.success) {
-            throw new Error(result.error || "The order could not be placed.");
-        }
-
-        showOrderMessage(`Order #${result.order_id} placed successfully. Total: ${formatMoney(result.total)}`, "success");
-        state.cart = {};
-        saveCart();
-        renderCart();
-        orderForm.reset();
-    } catch (error) {
-        showOrderMessage(error.message, "error");
-    }
-}
-
-function showOrderMessage(message, type) {
-    orderMessage.textContent = message;
-    orderMessage.className = `message ${type}`;
-}
-
-function saveCart() {
-    localStorage.setItem("food-order-cart", JSON.stringify(state.cart));
-}
-
-function formatMoney(value) {
-    return `₹${Number(value).toFixed(2)}`;
-}
-
-function artLetter(name) {
-    return escapeHtml(name.charAt(0));
-}
-
-function artColor(index) {
-    return ["#df9950", "#da7256", "#7c9c78", "#8b6f9a", "#d58645"][index % 5];
-}
-
-function escapeHtml(value) {
-    return String(value)
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
 }
