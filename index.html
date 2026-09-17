@@ -3,25 +3,54 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Food Ordering App</title>
+    <title>DesiRasoi - Order Delicious Food</title>
     <link rel="stylesheet" href="style.css">
+    <!-- Google Fonts for a clean look -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <!-- Supabase Library -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
-    <div class="container">
-        <h1>Order Your Food</h1>
-        
-        <div id="menu-container">
-            <!-- Menu items will load here -->
-        </div>
 
-        <div class="checkout-section">
-            <h2>Your Order</h2>
-            <input type="text" id="customer-name" placeholder="Your Name">
-            <input type="text" id="customer-address" placeholder="Delivery Address">
-            <button onclick="placeOrder()">Place Order</button>
-        </div>
+    <!-- Header / Navbar -->
+    <header class="navbar">
+        <div class="logo">😋 Desi<span>Rasoi</span></div>
+        <div class="cart-badge">🛒 Cart: <span id="cart-count">0</span> items</div>
+    </header>
+
+    <div class="main-container">
+        <!-- Menu Section -->
+        <section class="menu-section">
+            <h2>Our Menu</h2>
+            <div id="menu-container" class="menu-grid">
+                <p class="loading-text">Loading delicious items...</p>
+            </div>
+        </section>
+
+        <!-- Checkout Section -->
+        <section class="checkout-section">
+            <h2>Your Order Summary</h2>
+            <div id="cart-summary" class="cart-summary">
+                <p class="empty-cart">Your cart is empty</p>
+            </div>
+            
+            <div class="form-group">
+                <label>Full Name</label>
+                <input type="text" id="customer-name" placeholder="e.g. Rahul Sharma">
+            </div>
+
+            <div class="form-group">
+                <label>Delivery Address</label>
+                <textarea id="customer-address" rows="3" placeholder="Flat No, Building, Street, City"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label>Phone Number</label>
+                <input type="tel" id="customer-phone" placeholder="10-digit mobile number">
+            </div>
+
+            <button class="checkout-btn" onclick="placeOrder()">Place Order (Cash on Delivery)</button>
+        </section>
     </div>
 
     <script src="script.js"></script>
