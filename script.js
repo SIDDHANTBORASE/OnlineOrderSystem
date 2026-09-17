@@ -5,20 +5,26 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const { createClient } = supabase;
 const _supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// --- 2. LOAD MENU ON PAGE LOAD ---
+let currentCart = [];
+
 document.addEventListener('DOMContentLoaded', () => {
     loadMenu();
 });
 
+// Load food items from Supabase
 async function loadMenu() {
     const menuContainer = document.getElementById('menu-container');
-    menuContainer.innerHTML = '<p>Loading menu...</p>';
-
+    
     const { data: food_items, error } = await _supabase.from('food_items').select('*');
 
     if (error) {
         console.error('Error loading menu:', error);
-        menuContainer.innerHTML = '<p>Failed to load menu.</p>';
+        menuContainer.innerHTML = '<p style="color: red;">Failed to load menu items.</p>';
+        return;
+    }
+
+    if (!food_items || food_items.length === 0) {
+        menuContainer.innerHTML = '<p>No food items available right now.</p>';
         return;
     }
 
@@ -26,35 +32,63 @@ async function loadMenu() {
     food_items.forEach(item => {
         menuContainer.innerHTML += `
             <div class="food-item">
-                <h3>${item.name}</h3>
-                <p>${item.description || ''}</p>
-                <p><strong>$${item.price}</strong></p>
-                <button onclick="addToCart('${item.name}', ${item.price})">Add to Order</button>
+                <div>
+                    <h3>${item.name}</h3>
+                    <p>${item.description || 'Freshly prepared and delicious.'}</p>
+                </div>
+                <div>
+                    <div class="price">₹${item.price}</div>
+                    <button onclick="addToCart('${item.name}', ${item.price})">+ Add to Cart</button>
+                </div>
             </div>
         `;
     });
 }
 
-// Simple cart storage for demo
-let currentCart = [];
-
+// Add to Cart
 function addToCart(name, price) {
     currentCart.push({ name, price });
-    alert(name + ' added to your order!');
+    updateCartUI();
 }
 
-// --- 3. PLACE ORDER ---
-async function placeOrder() {
-    const name = document.getElementById('customer-name').value;
-    const address = document.getElementById('customer-address').value;
+// Update Cart Display
+function updateCartUI() {
+    const cartCount = document.getElementById('cart-count');
+    const cartSummary = document.getElementById('cart-summary');
+    
+    cartCount.innerText = currentCart.length;
 
-    if (!name || !address) {
-        alert('Please fill in your name and address.');
+    if (currentCart.length === 0) {
+        cartSummary.innerHTML = '<p class="empty-cart">Your cart is empty</p>';
+        return;
+    }
+
+    let html = '';
+    let total = 0;
+    
+    currentCart.forEach(item => {
+        total += item.price;
+        html += `<div class="cart-item-row"><span>${item.name}</span> <strong>₹${item.price}</strong></div>`;
+    });
+
+    html += `<div style="margin-top: 10px; border-top: 1px dashed #dfe4ea; padding-top: 8px; display: flex; justify-content: space-between;"><strong>Total:</strong> <strong style="color: #ff4757;">₹${total}</strong></div>`;
+    
+    cartSummary.innerHTML = html;
+}
+
+// Place Order
+async function placeOrder() {
+    const name = document.getElementById('customer-name').value.trim();
+    const address = document.getElementById('customer-address').value.trim();
+    const phone = document.getElementById('customer-phone').value.trim();
+
+    if (!name || !address || !phone) {
+        alert('Please fill in all details (Name, Address, and Phone Number).');
         return;
     }
 
     if (currentCart.length === 0) {
-        alert('Your cart is empty!');
+        alert('Your cart is empty! Add some food items first.');
         return;
     }
 
@@ -62,7 +96,7 @@ async function placeOrder() {
 
     const { error } = await _supabase.from('orders').insert([
         {
-            customer_name: name,
+            customer_name: `${name} (Phone: ${phone})`,
             address: address,
             items: currentCart,
             total_price: totalPrice
@@ -71,11 +105,13 @@ async function placeOrder() {
 
     if (error) {
         console.error('Error placing order:', error);
-        alert('Error placing order. Try again.');
+        alert('Something went wrong. Please try again.');
     } else {
-        alert('Order placed successfully!');
+        alert('🎉 Order Placed Successfully! Your food will be delivered soon.');
         currentCart = [];
         document.getElementById('customer-name').value = '';
         document.getElementById('customer-address').value = '';
+        document.getElementById('customer-phone').value = '';
+        updateCartUI();
     }
 }
